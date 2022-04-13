@@ -9,6 +9,7 @@ import os
 import threading
 from dotenv import dotenv_values
 import discord
+from music_player import MusicPlayer
 
 from utils.birthday import daily_birthday_jobs
 
@@ -27,14 +28,7 @@ handler.setFormatter(
 logger.addHandler(handler)
 
 bot = discord.Bot(debug_guilds=[785658574474969088], intents=discord.Intents.all())
-
-
-bot.lavalink_nodes = config.get("LAVALINK_NODES")
-
-# If you want to use spotify search
-bot.spotify_credentials = config.get("SPOTIFY_CREDENTIALS")
-
-bot.load_extension("cord-music")
+music_player = MusicPlayer(bot)
 
 for filename in os.listdir("./cogs"):
     if filename.endswith(".py"):

@@ -37,6 +37,7 @@ class BirthdayCommands(Cog):
             return
 
         # Checks for birthday and adds or updates in database
+        id = ctx.author.id
         username = ctx.author.name
         session: Session = db.Session()
         try:
@@ -45,7 +46,7 @@ class BirthdayCommands(Cog):
                 birthday.update({db.Birthday.month: month, db.Birthday.day: day})
                 message = f"Your birthday has been updated to {month}/{day}"
             else:
-                birthday = db.Birthday(username=username, month=month, day=day)
+                birthday = db.Birthday(id=id, username=username, month=month, day=day)
                 session.add(birthday)
                 message = f"Your birthday has been set to {month}/{day}"
             await ctx.respond(message, ephemeral=True)
