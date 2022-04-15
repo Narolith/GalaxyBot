@@ -13,6 +13,7 @@ from discord import (
 import db
 from sqlalchemy.orm import Session, Query
 from sqlalchemy.exc import SQLAlchemyError
+from app import logger
 
 
 class BirthdayCommands(Cog):
@@ -28,6 +29,8 @@ class BirthdayCommands(Cog):
         month: Option(int, "Month", min_value=1, max_value=12),  # noqa: F821
         day: Option(int, "Day", min_value=1, max_value=31),  # noqa: F821
     ):
+        """Adds or updates your birthday in the system"""
+
         # Validate month and day combo
         is_valid = validate_birthday(month, day)
         if not is_valid:
@@ -50,12 +53,13 @@ class BirthdayCommands(Cog):
                 session.add(birthday)
                 message = f"Your birthday has been set to {month}/{day}"
             await ctx.respond(message, ephemeral=True)
-        except SQLAlchemyError:
+            session.commit()
+        except SQLAlchemyError as err:
+            logger.error(err)
             await ctx.respond(
                 "Something went wrong and your birthday was not added/updated"
             )
         finally:
-            session.commit()
             session.close()
 
     @slash_command()
@@ -78,16 +82,18 @@ class BirthdayCommands(Cog):
                     "Your birthday was not found",
                     ephemeral=True,
                 )
-        except SQLAlchemyError:
+        except SQLAlchemyError as err:
+            logger.error(err)
             await ctx.respond(
                 "Something went wrong and your birthday was not retrieved"
             )
         finally:
-            session.commit()
             session.close()
 
     @slash_command()
     async def remove_birthday(self, ctx: ApplicationContext):
+        """Removes your birthday from the system"""
+
         # Checks for birthday and removes it from db
         username = ctx.author.name
         session: Session = db.Session()
@@ -95,17 +101,18 @@ class BirthdayCommands(Cog):
             birthday: Query = session.query(db.Birthday).filter_by(username=username)
             if birthday:
                 birthday.delete()
+                session.commit()
                 message = "Your birthday has been deleted"
             else:
                 message = "Your birthday was not found"
 
             await ctx.respond(message, ephemeral=True)
-        except SQLAlchemyError:
+        except SQLAlchemyError as err:
+            logger.error(err)
             await ctx.respond(
                 "Something went wrong and your birthday was not retrieved"
             )
         finally:
-            session.commit()
             session.close()
 
 
