@@ -4,7 +4,7 @@ Database Related Code
 
 
 from dotenv import dotenv_values
-from sqlalchemy import create_engine, Column, Integer, String
+from sqlalchemy import create_engine, Column, Integer, String, BigInteger
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
@@ -20,8 +20,8 @@ engine = create_engine(DATABASE_URI)
 class Birthday(Base):
     __tablename__ = "birthday"
 
-    id = Column("id", Integer, primary_key=True)
-    username = Column("username", String, unique=True)
+    id = Column("id", BigInteger, primary_key=True)
+    username = Column("username", String(36), unique=True)
     month = Column("month", Integer)
     day = Column("day", Integer)
 
