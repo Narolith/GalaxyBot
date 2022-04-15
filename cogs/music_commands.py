@@ -18,9 +18,9 @@ class Music(Cog):
         await self.bot.wait_until_ready()
         await wavelink.NodePool.create_node(
             bot=self.bot,
-            host="losingtime.dpaste.org",
-            port=2124,
-            password="SleepingOnTrains",
+            host="lavalink.islantay.tk",
+            port=8880,
+            password="waifufufufu",
         )
 
     @Cog.listener()
@@ -40,11 +40,17 @@ class Music(Cog):
         """Searches for a song and then plays or queues it.
         Will join voice channel if not already in it"""
 
+        if not ctx.author.voice:
+            embed = EmbedCreator.error_embed(
+                "Not in voice channel", "You are not in a voice channel!"
+            )
+            return await ctx.respond(embed=embed)
         music_player.text_channel = ctx.channel
 
         embed = EmbedCreator.embed("Looking up song", f"Looking for:\n{query}")
         await ctx.respond(embed=embed)
 
+        # Checks if connected to a voice client and connects if not
         if not ctx.voice_client:
             music_player.voice_client = await ctx.author.voice.channel.connect(
                 cls=wavelink.Player
@@ -52,6 +58,8 @@ class Music(Cog):
         else:
             music_player.voice_client = ctx.voice_client
 
+        # Reads query string to identify urls to look up song information
+        # Currently only YouTube and Soundcloud urls are supported
         song: SearchableTrack
         song_title = ""
         if any(sub_string in query for sub_string in ["http://", "https://"]):
@@ -69,8 +77,13 @@ class Music(Cog):
                 )
                 return await ctx.respond(embed=embed)
 
+        # Looks up song based on type and defaults to YouTube if none found
         song = await get_song(query, song_title or query)
 
+        # Adds to queue and if already playing, send message to notify
+        # user that the song has been added to a queue.  This is not
+        # done for the song if music is not playing even though it
+        # is added to queue as it will being to play immediately
         if music_player.voice_client.is_playing():
             embed = EmbedCreator.music_embed("Added to queue", song)
             await ctx.respond(embed=embed)
@@ -82,6 +95,8 @@ class Music(Cog):
     async def stop(self, ctx: ApplicationContext):
         """Stops the music player"""
 
+        # Checks if music is playing and stops if so.  AttributeError catch
+        # in case this is called prior to a voice_client existing
         try:
             if music_player.voice_client.is_playing():
                 await music_player.voice_client.stop()
