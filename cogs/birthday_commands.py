@@ -44,8 +44,8 @@ class BirthdayCommands(Cog):
         username = ctx.author.name
         session: Session = db.Session()
         try:
-            birthday: Query = session.query(db.Birthday).filter_by(username=username)
-            if birthday.first():
+            birthday: Query = await find_birthday(session, username)
+            if birthday:
                 birthday.update({db.Birthday.month: month, db.Birthday.day: day})
                 message = f"Your birthday has been updated to {month}/{day}"
             else:
@@ -69,9 +69,7 @@ class BirthdayCommands(Cog):
         username = ctx.author.name
         session: Session = db.Session()
         try:
-            birthday: db.Birthday = (
-                session.query(db.Birthday).filter_by(username=username).first()
-            )
+            birthday: db.Birthday = (await find_birthday(session, username)).first()
             if birthday:
                 await ctx.respond(
                     f"Your birthday is set to: {birthday.month}/{birthday.day}",
@@ -98,7 +96,7 @@ class BirthdayCommands(Cog):
         username = ctx.author.name
         session: Session = db.Session()
         try:
-            birthday: Query = session.query(db.Birthday).filter_by(username=username)
+            birthday: Query = await find_birthday(session, username)
             if birthday:
                 birthday.delete()
                 session.commit()
@@ -114,6 +112,13 @@ class BirthdayCommands(Cog):
             )
         finally:
             session.close()
+
+
+async def find_birthday(session: Session, username: str) -> Query:
+    try:
+        return session.query(db.Birthday).filter_by(username=username)
+    except SQLAlchemyError as err:
+        logger.error(err)
 
 
 def validate_birthday(month: int, day: int):
