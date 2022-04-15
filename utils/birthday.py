@@ -9,27 +9,38 @@ import db
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 
+# Prod Ids
+GUILD_ID = 398266931678806017
+GUILD_ANNOUCEMENT_ROLE_ID = 751548638387372083
 
-async def daily_birthday_jobs():
+# Dev Ids
+# GUILD_ID = 785658574474969088
+# GUILD_ANNOUCEMENT_ROLE_ID = 808486552443289630
+
+
+async def daily_birthday_jobs(bot: Bot):
     """Schedules daily birthday message and cleanup"""
-
-    run_time = set_run_time()
+    date = datetime.now()
+    if date.hour > 9:
+        run_time = set_run_time(1)
+    else:
+        run_time = set_run_time()
     while True:
         date = datetime.now()
         if date > run_time:
-            await database_cleanup()
-            await birthday_message()
-            run_time = set_run_time()
+            await database_cleanup(bot)
+            await birthday_message(bot)
+            run_time = set_run_time(1)
         sleep(1)
 
 
-def set_run_time():
+def set_run_time(days_to_add: int = 0):
     """Sets run time for daily birthday jobs"""
 
     current_date = datetime.now()
     return current_date.replace(
-        day=current_date.day, hour=9, minute=0, second=0, microsecond=0
-    ) + timedelta(days=1)
+        day=current_date.day, hour=10, minute=0, second=0, microsecond=0
+    ) + timedelta(days=days_to_add)
 
 
 async def database_cleanup(bot: Bot):
@@ -39,7 +50,7 @@ async def database_cleanup(bot: Bot):
     users = bot.users
 
     # Grab all birthdays
-    session: Session = Session()
+    session: Session = db.Session()
     try:
         birthdays: List[db.Birthday] = session.query(db.Birthday).all()
 
@@ -68,13 +79,13 @@ async def birthday_message(bot: Bot):
     print("running birthday_message")
 
     # Grab the Galaxy server
-    guild: Guild = [guild for guild in bot.guilds if guild.id == 398266931678806017]
+    guild: Guild = [guild for guild in bot.guilds if guild.id == GUILD_ID][0]
 
     # Initialize variables
     birthday_people = ""
     current_month = datetime.now().month
     current_day = datetime.now().day
-    session = Session()
+    session: Session = db.Session()
     birthdays: List[db.Birthday] = session.query(db.Birthday).all()
 
     # Loop through birthdays to find birthdays that match today's date
@@ -87,7 +98,7 @@ async def birthday_message(bot: Bot):
     # Send birthday message if there are any birthday people
     if birthday_people:
         channel: TextChannel = guild.system_channel
-        announcement: Role = guild.get_role(751548638387372083)
+        announcement: Role = guild.get_role(GUILD_ANNOUCEMENT_ROLE_ID)
 
         embed = Embed(
             title="Happy Birthday!",
