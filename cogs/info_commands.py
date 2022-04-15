@@ -15,6 +15,8 @@ from discord import (
     ApplicationContext,
 )
 
+from utils.embed import EmbedCreator
+
 
 class InfoCommands(Cog):
     """Cog that contains commands related to displaying information"""
@@ -54,6 +56,7 @@ class InfoCommands(Cog):
         ctx: ApplicationContext,
         member: Option(Member, "Member to select", required=False),  # noqa: F722
     ):
+        """Displays information about a user or yourself if none is provided"""
 
         # If member is not provided, target the author
         if member is None:
@@ -67,11 +70,10 @@ class InfoCommands(Cog):
             roles += f"{role.name}\n"
 
         # Build embed message with information
-        embed = Embed(
-            title=member.display_name,
-            colour=Colour.blue(),
+        embed = EmbedCreator.embed(
+            member.display_name, thumbnail=member.avatar or member.default_avatar
         )
-        embed.set_thumbnail(url=member.avatar or member.default_avatar)
+
         embed.add_field(name="Joined", value=member.joined_at.date()).add_field(
             name="Roles", value=roles
         ).add_field(name="Status", value=member.status.value.capitalize()).add_field(
