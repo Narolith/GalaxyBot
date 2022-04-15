@@ -15,13 +15,13 @@ class EmbedCreator:
         """Creates an error embed"""
 
         embed = Embed(
-            colour=Colour.red, title=title, description=description
+            colour=Colour.red(), title=title, description=description
         ).set_thumbnail(url="https://i.imgur.com/T7qpkgH.png")
 
         return embed
 
     @staticmethod
-    def embed(title: str, description: str, thumbnail: str = ""):
+    def embed(title: str, description: str = "", thumbnail: str = ""):
         """Creates a default embed"""
 
         embed = Embed(colour=Colour.blurple(), title=title, description=description)
