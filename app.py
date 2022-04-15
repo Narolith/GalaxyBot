@@ -2,11 +2,9 @@
 Main App File
 """
 
-import asyncio
 from datetime import datetime
 import logging
 import os
-import threading
 from dotenv import dotenv_values
 import discord
 from music_player import MusicPlayer
@@ -40,7 +38,7 @@ async def on_ready():
     """Event fires once once bot is logged in"""
 
     print(f"Logged in as {bot.user}")
-    threading.Thread(target=asyncio.run, args=(daily_birthday_jobs(),)).start()
+    bot.loop.create_task(daily_birthday_jobs(bot))
 
 
 bot.run(config.get("DISCORD_TOKEN"))
