@@ -45,7 +45,7 @@ class BirthdayCommands(Cog):
         session: Session = db.Session()
         try:
             birthday: Query = await find_birthday(session, username)
-            if birthday:
+            if birthday.first():
                 birthday.update({db.Birthday.month: month, db.Birthday.day: day})
                 message = f"Your birthday has been updated to {month}/{day}"
             else:
