@@ -18,7 +18,7 @@ engine = create_engine(DATABASE_URI)
 
 
 class Birthday(Base):
-    __tablename__ = "birthday"
+    __tablename__ = "birthdays"
 
     id = Column("id", BigInteger, primary_key=True)
     username = Column("username", String(36), unique=True)
