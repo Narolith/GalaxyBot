@@ -9,7 +9,7 @@ from dotenv import dotenv_values
 import discord
 from music_player import MusicPlayer
 
-from utils.birthday import daily_birthday_jobs
+from utils.birthday import daily_birthday_jobs, set_run_time
 
 # Load configuration from .env
 config = dotenv_values(".env")
@@ -38,7 +38,15 @@ async def on_ready():
     """Event fires once once bot is logged in"""
 
     print(f"Logged in as {bot.user}")
-    bot.loop.create_task(daily_birthday_jobs(bot))
+
+    # Sets initial runtime for birthday jobs
+    # Birthday jobs run at 10am
+    # Runs same day if before 10am
+    if datetime.now().hour > 9:
+        bot.birthday_job_runtime = set_run_time(1)
+    else:
+        bot.birthday_job_runtime = set_run_time()
+    await daily_birthday_jobs.start(bot)
 
 
 bot.run(config.get("DISCORD_TOKEN"))
