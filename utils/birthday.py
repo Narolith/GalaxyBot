@@ -1,37 +1,34 @@
 from asyncio.log import logger
 from datetime import datetime, timedelta
-from time import sleep
 from typing import List
 
 from discord import Bot, Embed, Guild, Member, Role, TextChannel
+from discord.ext import tasks
 
 import db
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
+from mysql.connector.errors import OperationalError
+
 
 # Prod Ids
-GUILD_ID = 398266931678806017
-GUILD_ANNOUCEMENT_ROLE_ID = 751548638387372083
+# GUILD_ID = 398266931678806017
+# GUILD_ANNOUCEMENT_ROLE_ID = 751548638387372083
 
 # Dev Ids
-# GUILD_ID = 785658574474969088
-# GUILD_ANNOUCEMENT_ROLE_ID = 808486552443289630
+GUILD_ID = 785658574474969088
+GUILD_ANNOUCEMENT_ROLE_ID = 808486552443289630
 
 
+@tasks.loop(seconds=1.0)
 async def daily_birthday_jobs(bot: Bot):
     """Schedules daily birthday message and cleanup"""
+
     date = datetime.now()
-    if date.hour > 9:
-        run_time = set_run_time(1)
-    else:
-        run_time = set_run_time()
-    while True:
-        date = datetime.now()
-        if date > run_time:
-            await database_cleanup(bot)
-            await birthday_message(bot)
-            run_time = set_run_time(1)
-        sleep(1)
+    if date > bot.birthday_job_runtime:
+        await database_cleanup(bot)
+        await birthday_message(bot)
+        bot.birthday_job_runtime = set_run_time(1)
 
 
 def set_run_time(days_to_add: int = 0):
@@ -56,20 +53,22 @@ async def database_cleanup(bot: Bot):
 
         # Delete if birthday doesn't match an active user
         for birthday in birthdays:
-            username = birthday.username
+            user_id = birthday.id
             user_present = False
             for user in users:
-                if username == user.name:
+                if user_id == user.id:
                     user_present = True
                     break
             if not user_present:
                 session.delete(birthday)
 
-        print("ran database_cleanup")
-    except SQLAlchemyError as err:
-        logger.error(err)
-    finally:
         session.commit()
+        print("ran database_cleanup")
+    except (SQLAlchemyError, OperationalError) as err:
+        logger.error(err)
+        session.rollback()
+        await database_cleanup(bot)
+    finally:
         session.close()
 
 
