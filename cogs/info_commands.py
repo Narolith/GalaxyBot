@@ -26,6 +26,7 @@ class InfoCommands(Cog):
 
     @slash_command()
     async def server(self, ctx: ApplicationContext):
+        """Displays information about current server"""
         server = ctx.guild
 
         if server is None:
