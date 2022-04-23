@@ -35,7 +35,7 @@ class EmbedCreator:
     def music_embed(title: str, song: SearchableTrack):
         """Creates a music embed"""
 
-        duration = datetime.timedelta(seconds=song.duration)
+        duration = str(datetime.timedelta(seconds=song.duration)).split(".")[0]
 
         embed = Embed(colour=Colour.blurple(), title=title)
         embed.add_field(name="Title", value=song.title)
