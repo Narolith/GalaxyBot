@@ -67,7 +67,6 @@ async def database_cleanup(bot: Bot):
     except (SQLAlchemyError, OperationalError) as err:
         logger.error(err)
         session.rollback()
-        await database_cleanup(bot)
     finally:
         session.close()
 
@@ -85,7 +84,12 @@ async def birthday_message(bot: Bot):
     current_month = datetime.now().month
     current_day = datetime.now().day
     session: Session = db.Session()
-    birthdays: List[db.Birthday] = session.query(db.Birthday).all()
+    try:
+        birthdays: List[db.Birthday] = session.query(db.Birthday).all()
+    except (SQLAlchemyError, OperationalError) as err:
+        logger.error(err)
+    finally:
+        session.close()
 
     # Loop through birthdays to find birthdays that match today's date
     for birthday in birthdays:
