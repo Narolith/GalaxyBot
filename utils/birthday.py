@@ -10,21 +10,20 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 from mysql.connector.errors import OperationalError
 
+from utils.config import get_config
 
-# Prod Ids
-# GUILD_ID = 398266931678806017
-# GUILD_ANNOUCEMENT_ROLE_ID = 751548638387372083
 
-# Dev Ids
-GUILD_ID = 785658574474969088
-GUILD_ANNOUCEMENT_ROLE_ID = 808486552443289630
+config = get_config()
+
+GUILD_ID = int(config.get("GUILD_ID"))
+GUILD_ANNOUCEMENT_ROLE_ID = int(config.get("GUILD_ANNOUCEMENT_ROLE_ID"))
 
 
 @tasks.loop(seconds=1.0)
 async def daily_birthday_jobs(bot: Bot):
     """Schedules daily birthday message and cleanup"""
 
-    date = datetime.now()
+    date = datetime.utcnow()
     if date > bot.birthday_job_runtime:
         await database_cleanup(bot)
         await birthday_message(bot)
@@ -34,9 +33,9 @@ async def daily_birthday_jobs(bot: Bot):
 def set_run_time(days_to_add: int = 0):
     """Sets run time for daily birthday jobs"""
 
-    current_date = datetime.now()
+    current_date = datetime.utcnow()
     return current_date.replace(
-        day=current_date.day, hour=10, minute=0, second=0, microsecond=0
+        day=current_date.day, hour=14, minute=0, second=0, microsecond=0
     ) + timedelta(days=days_to_add)
 
 
@@ -55,10 +54,7 @@ async def database_cleanup(bot: Bot):
         for birthday in birthdays:
             user_id = birthday.id
             user_present = False
-            for user in users:
-                if user_id == user.id:
-                    user_present = True
-                    break
+            user_present = next((user for user in users if user.id == user_id), None)
             if not user_present:
                 session.delete(birthday)
 
@@ -85,7 +81,11 @@ async def birthday_message(bot: Bot):
     current_day = datetime.now().day
     session: Session = db.Session()
     try:
-        birthdays: List[db.Birthday] = session.query(db.Birthday).all()
+        birthdays: List[db.Birthday] = (
+            session.query(db.Birthday)
+            .filter(db.Birthday.month == current_month, db.Birthday.day == current_day)
+            .all()
+        )
     except (SQLAlchemyError, OperationalError) as err:
         logger.error(err)
     finally:
@@ -94,9 +94,7 @@ async def birthday_message(bot: Bot):
     # Loop through birthdays to find birthdays that match today's date
     for birthday in birthdays:
         member: Member = guild.get_member(int(birthday.id))
-
-        if birthday.month == current_month and birthday.day == current_day:
-            birthday_people += f"{member.mention}\n"
+        birthday_people += f"{member.mention}\n"
 
     # Send birthday message if there are any birthday people
     if birthday_people:
