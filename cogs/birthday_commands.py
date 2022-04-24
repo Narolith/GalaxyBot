@@ -127,13 +127,13 @@ def validate_birthday(month: int, day: int):
     is_valid = False
 
     if month in [1, 3, 5, 7, 8, 10, 12]:
-        if day in range(1, 31):
+        if day in range(1, 32):
             is_valid = True
     elif month in [4, 6, 9, 11]:
-        if day in range(1, 30):
+        if day in range(1, 31):
             is_valid = True
     elif month == 2:
-        if day in range(1, 29):
+        if day in range(1, 30):
             is_valid = True
 
     return is_valid
