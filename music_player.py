@@ -1,8 +1,3 @@
-"""
-Music player responsible for bot's music functions
-"""
-
-from typing import List
 from discord import TextChannel
 from pycord.wavelink import SearchableTrack
 import pycord.wavelink as wavelink

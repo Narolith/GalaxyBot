@@ -10,10 +10,7 @@ This is a Discord bot designed to provide custom built functionality to the Gala
 
 File contains the main application logic such as:  
 - Loads the configuration to provide the discord token 
-- Initializes logger used to track error, warning, and information messages
 - Creates discord bot object with all intents
-- Creates music player object to use with music commands
-- Starts birthday job task to run daily database cleanup and birthday messages
 
 ###### db.py
 
@@ -27,8 +24,6 @@ File contains database logic such as:
 File contains music player logic such as:
 
 - MusicPlayer class that tracks current song, queue, voice client, text channel, bot, and if player is stopped
-- check_player - Checks if music player needs to load and play the next song
-- play_song - Grabs the first song in the queue and sends it to the voice channel and announces that to the text channel
 
 ###### cogs/birthday_commands.py:
 
@@ -54,7 +49,7 @@ File contains the cog for msuic commands such as:
 - /list - Lists the current song queue in the music player
 - /leave - Makes the bot leave the voice channel
 
-###### utils/birthday.py
+###### logic/birthday.py
 
 File contains utilities to support birthday commands such as:
 
@@ -63,7 +58,7 @@ File contains utilities to support birthday commands such as:
 - database_cleanup - searches the database for stale birthdays that belong to users no longer in the server
 - birthday_message - searches for birthdays for todays date and announces them to the server
 
-###### utils/embed.py
+###### logic/embed.py
 
 File contains utilities to support embed building such as:
 

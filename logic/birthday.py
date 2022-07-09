@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
 import asyncio
-from datetime import datetime, timedelta, tzinfo
+from datetime import datetime, timedelta
 from typing import List, Tuple
 from db import Birthday as db_Birthday
 from discord import ApplicationContext, Guild, Member, Role, TextChannel
