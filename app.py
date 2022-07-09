@@ -1,53 +1,48 @@
-"""
-Main App File
-"""
-
-from datetime import datetime
-import logging
 import os
-import discord
+from db import DB
+from logic.bot import Bot
+from pycord.wavelink import Node, Player, Track
+from logic.embed import create_music_embed
+
 from music_player import MusicPlayer
 
-from utils.birthday import daily_birthday_jobs, set_run_time
-from utils.config import get_config
 
-config = get_config()
+# Initialize bot
+bot = Bot(is_prod=False)
+bot.music_player = MusicPlayer(bot)
+bot.db = DB(bot)
 
-GUILD_ID = int(config.get("GUILD_ID"))
-
-# Configure Logging
-logger = logging.getLogger("discord")
-logger.setLevel(logging.INFO)
-handler = logging.FileHandler(
-    filename=f"logs/discord-{datetime.utcnow()}.log", encoding="utf-8", mode="w"
-)
-handler.setFormatter(
-    logging.Formatter("%(asctime)s:%(levelname)s:%(name)s: %(message)s")
-)
-logger.addHandler(handler)
-
-bot = discord.Bot(debug_guilds=[GUILD_ID], intents=discord.Intents.all())
-music_player = MusicPlayer(bot)
-
+# Import command cogs
 for filename in os.listdir("./cogs"):
     if filename.endswith(".py"):
         bot.load_extension(f"cogs.{filename[:-3]}")
 
+# Event Listeners
+@bot.event
+async def on_wavelink_node_ready(node: Node):
+    """Event fired when a node has finished connecting."""
+
+    print(f"Node: <{node.identifier}> is ready!")
+
 
 @bot.event
-async def on_ready():
-    """Event fires once once bot is logged in"""
+async def on_wavelink_track_start(player: Player, track: Track):
+    """Event fired when a track starts."""
 
-    print(f"Logged in as {bot.user}")
-
-    # Sets initial runtime for birthday jobs
-    # Birthday jobs run at 10am
-    # Runs same day if before 10am
-    if datetime.utcnow().hour > 14:
-        bot.birthday_job_runtime = set_run_time(1)
-    else:
-        bot.birthday_job_runtime = set_run_time()
-    await daily_birthday_jobs.start(bot)
+    print(f"Track: <{track.title}> started playing!")
+    embed = create_music_embed("Now Playing", track)
+    await bot.music_player.text_channel.send(embed=embed)
 
 
-bot.run(config.get("DISCORD_TOKEN"))
+@bot.event
+async def on_wavelink_track_end(player: Player, track: Track, reason: str):
+    """Event fired when a track ends."""
+
+    print(f"Track: <{track.title}> has ended!")
+    print(reason)
+    if reason == "FINISHED":
+        await bot.music_player.check_queue()
+
+
+# Run bot
+bot.run(bot.config.get("DISCORD_TOKEN"))

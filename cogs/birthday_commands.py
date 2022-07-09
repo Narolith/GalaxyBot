@@ -1,7 +1,3 @@
-"""
-Cog of birthday related commands
-"""
-
 from discord import (
     ApplicationContext,
     Bot,
@@ -10,14 +6,18 @@ from discord import (
     slash_command,
 )
 
-import db
-from sqlalchemy.orm import Session, Query
 from sqlalchemy.exc import SQLAlchemyError
-from app import logger
+import logic.birthday as birthday_logic
 
 
 class BirthdayCommands(Cog):
-    """Birthday related commands"""
+    """Birthday related commands
+
+    Commands:
+        - add_birthday: Adds a birthday to the database
+        - remove_birthday: Removes a birthday from the database
+        - check_birthday: Checks if user has a birthday in the database and if so, displays it
+    """
 
     def __init__(self, bot: Bot):
         self.bot = bot
@@ -26,117 +26,63 @@ class BirthdayCommands(Cog):
     async def add_birthday(
         self,
         ctx: ApplicationContext,
-        month: Option(int, "Month", min_value=1, max_value=12),  # noqa: F821
-        day: Option(int, "Day", min_value=1, max_value=31),  # noqa: F821
-    ):
-        """Adds or updates your birthday in the system"""
+        month: Option(int, "Month", min_value=1, max_value=12),
+        day: Option(int, "Day", min_value=1, max_value=31),
+    ) -> None:
+        """Adds or updates your birthday in the system
 
-        # Validate month and day combo
-        is_valid = validate_birthday(month, day)
-        if not is_valid:
-            await ctx.respond(
-                "Month and day not valid, please try again", ephemeral=True
-            )
-            return
+        Parameters:
+            ctx (ApplicationContext): Context of the command
+            month (int): Month of the birthday
+            day (int): Day of the birthday
+        """
 
-        # Checks for birthday and adds or updates in database
-        id = ctx.author.id
-        username = ctx.author.name
-        session: Session = db.Session()
         try:
-            birthday: Query = await find_birthday(session, username)
-            if birthday.first():
-                birthday.update({db.Birthday.month: month, db.Birthday.day: day})
-                message = f"Your birthday has been updated to {month}/{day}"
-            else:
-                birthday = db.Birthday(id=id, username=username, month=month, day=day)
-                session.add(birthday)
-                message = f"Your birthday has been set to {month}/{day}"
-            await ctx.respond(message, ephemeral=True)
-            session.commit()
+            await birthday_logic.add_birthday(self.bot, ctx, month, day)
+        except ValueError as err:
+            await ctx.respond(err, ephemeral=True)
+            return
         except SQLAlchemyError as err:
-            logger.error(err)
-            await ctx.respond(
-                "Something went wrong and your birthday was not added/updated"
-            )
-        finally:
-            session.close()
+            await ctx.respond("There was an error adding your birthday", ephemeral=True)
+            return
+        await ctx.respond("Birthday added successfully", ephemeral=True)
 
     @slash_command()
     async def check_birthday(self, ctx: ApplicationContext):
-        """Looks up birthday and returns it"""
+        """Looks up birthday and returns it
 
-        username = ctx.author.name
-        session: Session = db.Session()
+        Parameters:
+            ctx (ApplicationContext): Context of the command
+        """
+
         try:
-            birthday: db.Birthday = (await find_birthday(session, username)).first()
-            if birthday:
-                await ctx.respond(
-                    f"Your birthday is set to: {birthday.month}/{birthday.day}",
-                    ephemeral=True,
-                )
-            else:
-                await ctx.respond(
-                    "Your birthday was not found",
-                    ephemeral=True,
-                )
-        except SQLAlchemyError as err:
-            logger.error(err)
-            await ctx.respond(
-                "Something went wrong and your birthday was not retrieved"
-            )
-        finally:
-            session.close()
+            birthday = await birthday_logic.get_birthday(self.bot, ctx)
+        except ValueError as err:
+            await ctx.respond(err, ephemeral=True)
+            return
+        await ctx.respond(
+            f"Your birthday is {birthday.month}/{birthday.day}", ephemeral=True
+        )
 
     @slash_command()
     async def remove_birthday(self, ctx: ApplicationContext):
-        """Removes your birthday from the system"""
+        """Removes your birthday from the database
 
-        # Checks for birthday and removes it from db
-        username = ctx.author.name
-        session: Session = db.Session()
+        Parameters:
+            ctx (ApplicationContext): Context of the command
+        """
+
         try:
-            birthday: Query = await find_birthday(session, username)
-            if birthday:
-                birthday.delete()
-                session.commit()
-                message = "Your birthday has been deleted"
-            else:
-                message = "Your birthday was not found"
-
-            await ctx.respond(message, ephemeral=True)
+            await birthday_logic.remove_birthday(self.bot, ctx)
+        except ValueError as err:
+            await ctx.respond(err, ephemeral=True)
+            return
         except SQLAlchemyError as err:
-            logger.error(err)
             await ctx.respond(
-                "Something went wrong and your birthday was not retrieved"
+                "There was an error removing your birthday", ephemeral=True
             )
-        finally:
-            session.close()
-
-
-async def find_birthday(session: Session, username: str) -> Query:
-    try:
-        return session.query(db.Birthday).filter_by(username=username)
-    except SQLAlchemyError as err:
-        logger.error(err)
-
-
-def validate_birthday(month: int, day: int):
-    """Validates if birthday is a valid date"""
-
-    is_valid = False
-
-    if month in [1, 3, 5, 7, 8, 10, 12]:
-        if day in range(1, 32):
-            is_valid = True
-    elif month in [4, 6, 9, 11]:
-        if day in range(1, 31):
-            is_valid = True
-    elif month == 2:
-        if day in range(1, 30):
-            is_valid = True
-
-    return is_valid
+            return
+        await ctx.respond("Birthday removed", ephemeral=True)
 
 
 def setup(bot: Bot):
