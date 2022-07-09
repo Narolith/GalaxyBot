@@ -4,3 +4,4 @@ sqlalchemy>=1.4.38
 pycord.wavelink>=1.0.0b55
 mysql-connector-python>=8.0.29
 validators>=0.20.0
+pytz>=2022.1
