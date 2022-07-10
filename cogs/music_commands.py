@@ -4,9 +4,7 @@ from pycord import wavelink
 from pycord.wavelink import SearchableTrack
 from logic.music import convert_query, get_song
 from logic.bot import Bot
-
-
-
+from timer import Timer
 
 
 class Music(Cog):
@@ -55,12 +53,20 @@ class Music(Cog):
         if voice_channel is None:
             await ctx.respond(
                 embed=create_error_embed(
-                    "Not in a voice channel",
+                    "Bot Not In Voice Channel",
                     "You must be in a voice channel to use this command.",
                 ),
                 ephemeral=True,
             )
             return
+
+        # Check if bot is already in user's voice channel and join if not
+        if self.bot.music_player.voice_client is None:
+            self.bot.music_player.voice_client = await ctx.author.voice.channel.connect(
+                cls=wavelink.Player
+            )
+        elif self.bot.music_player.voice_client.channel != voice_channel:
+            await self.bot.music_player.voice_client.move_to(voice_channel)
 
         # Set music player text channel to the channel the command was sent in
         self.bot.music_player.text_channel = ctx.channel
@@ -69,15 +75,6 @@ class Music(Cog):
         await ctx.respond(
             embed=create_default_embed("Looking up song", f"Looking for:\n{query}")
         )
-
-        # Check if bot is already in user's voice channel and join if not
-        if (
-            self.bot.music_player.voice_client is None
-            or self.bot.music_player.voice_client.channel != ctx.author.voice.channel
-        ):
-            self.bot.music_player.voice_client = await ctx.author.voice.channel.connect(
-                cls=wavelink.Player
-            )
 
         # Reads query string to identify urls to look up song information
         # Currently only YouTube and Soundcloud urls are supported
@@ -93,7 +90,7 @@ class Music(Cog):
             )
             return
         # Looks up song based on type and defaults to YouTube if none found
-        song = await get_song(*song_info) 
+        song = await get_song(*song_info)
 
         # If song is not found, return error
         if song is None:
@@ -127,10 +124,51 @@ class Music(Cog):
     async def leave(self, ctx: ApplicationContext):
         """Leaves the voice channel if in one"""
 
-        await self.bot.music_player.leave()
+        if self.bot.music_player.voice_client is not None:
+            await self.bot.music_player.leave()
+            await ctx.respond(
+                embed=create_default_embed("Left Channel", "Left the voice channel")
+            )
+        else:
+            await ctx.respond(
+                embed=create_error_embed(
+                    "Not in a voice channel",
+                    "I am not in a voice channel!.",
+                ),
+                ephemeral=True,
+            )
+
+    @slash_command()
+    async def join(self, ctx: ApplicationContext):
+        """Joins the music player to the voice channel the user is in"""
+
+        # Get the voice channel
+        voice_channel = ctx.author.voice.channel if ctx.author.voice else None
+
+        # Check if the user is in a voice channel
+        if voice_channel is None:
+            await ctx.respond(
+                embed=create_error_embed(
+                    "Not in a voice channel",
+                    "You must be in a voice channel to use this command.",
+                ),
+                ephemeral=True,
+            )
+            return
+
+        if self.bot.music_player.voice_client is None:
+            self.bot.music_player.voice_client = await ctx.author.voice.channel.connect(
+                cls=wavelink.Player
+            )
+        else:
+            await self.bot.music_player.voice_client.move_to(voice_channel)
+
         await ctx.respond(
-            embed=create_default_embed("Left Channel", "Left the voice channel")
+            embed=create_default_embed("Joined", "Joined the voice channel")
         )
+        self.bot.music_player.text_channel = ctx.channel
+        if self.bot.music_player.is_playing is False:
+            self.bot.music_player.idle_timer = Timer(300, self.bot.music_player.leave)
 
     @slash_command()
     async def list(self, ctx: ApplicationContext):
