@@ -3,7 +3,6 @@ from pycord.wavelink import SearchableTrack
 import pycord.wavelink as wavelink
 
 from logic.bot import Bot
-from logic.embed import create_default_embed
 from timer import Timer
 
 
