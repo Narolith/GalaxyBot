@@ -9,6 +9,7 @@ import pytz
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 from logic.embed import create_default_embed
+import csv
 
 if TYPE_CHECKING:
     from logic.bot import Bot
@@ -166,6 +167,19 @@ async def birthday_message(bot: Bot) -> None:
     print("ran birthday_message")
 
 
+async def backup_birthdays(birthdays: List[db_Birthday]) -> None:
+    """Backup birthdays to a file"""
+    print("performing backup")
+    date = datetime.utcnow().date().strftime("%Y-%m-%d")
+    with open(f"birthdays_{date}.csv", "w", newline="") as csvfile:
+        writer = csv.writer(csvfile, delimiter=",")
+        for birthday in birthdays:
+            writer.writerow(
+                [birthday.id, birthday.username, birthday.month, birthday.day]
+            )
+    print("backup complete")
+
+
 async def database_cleanup(bot: Bot):
     """Deletes birthdays of users no longer in the server
 
@@ -192,6 +206,8 @@ async def database_cleanup(bot: Bot):
     except SQLAlchemyError as e:
         print(e)
         return
+
+    backup_birthdays(birthdays)
 
     for birthday in birthdays:
         if birthday.id not in [member.id for member in members]:
