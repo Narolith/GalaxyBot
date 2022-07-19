@@ -200,7 +200,6 @@ async def database_cleanup(bot: Bot):
         print(e)
         return
 
-    session: Session = bot.db.session_maker()
     try:
         birthdays: List[db_Birthday] = await get_birthdays(bot)
     except SQLAlchemyError as e:
@@ -209,6 +208,7 @@ async def database_cleanup(bot: Bot):
 
     backup_birthdays(birthdays)
 
+    session: Session = bot.db.session_maker()
     for birthday in birthdays:
         if birthday.id not in [member.id for member in members]:
             session.delete(birthday)
