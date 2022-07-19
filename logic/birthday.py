@@ -171,7 +171,7 @@ async def backup_birthdays(birthdays: List[db_Birthday]) -> None:
     """Backup birthdays to a file"""
     print("performing backup")
     date = datetime.utcnow().date().strftime("%Y-%m-%d")
-    with open(f"birthdays_{date}.csv", "w", newline="") as csvfile:
+    with open(f"backups/birthdays_{date}.csv", "w", newline="") as csvfile:
         writer = csv.writer(csvfile, delimiter=",")
         for birthday in birthdays:
             writer.writerow(
