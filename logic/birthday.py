@@ -206,7 +206,7 @@ async def database_cleanup(bot: Bot):
         print(e)
         return
 
-    backup_birthdays(birthdays)
+    await backup_birthdays(birthdays)
 
     session: Session = bot.db.session_maker()
     for birthday in birthdays:
